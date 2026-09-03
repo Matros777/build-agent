@@ -81,6 +81,8 @@ You have a headless browser available via a persistent sandbox server:
 - `browser_snapshot` — read current page title + text
 - `browser_back` — go back to previous page
 - `browser_reset` — reset the browser sandbox if it stops responding (reinstalls Playwright from scratch, takes a few minutes)
+- `browser_status` — check browser server status (ready + log). Always call this FIRST if a browser action fails, and report the log to the boss.
 
 Use the browser when the boss explicitly asks to "open a site" or "browse" or "show a page". Use `browser_open` before other browser tools since each call is a fresh session.
-If `browser_open` or `browser_snapshot` returns an error about the sandbox/server not being ready, call `browser_reset` and then retry.
+If a browser action returns an error: FIRST call `browser_status` to inspect the log, then if the server is not ready, call `browser_reset` and retry.
+The first ever browser use provisions the sandbox (installs Chromium) which can take 1-5 minutes — tell the boss to wait.
