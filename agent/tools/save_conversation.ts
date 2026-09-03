@@ -1,12 +1,6 @@
 import { defineTool } from "eve/tools";
-import { MongoClient } from "mongodb";
+import { getClient } from "../../lib/mongodb";
 import { z } from "zod";
-
-function getClient() {
-  const uri = process.env.DATABASE_URL_MONGODB_URI;
-  if (!uri) throw new Error("DATABASE_URL_MONGODB_URI is not set");
-  return new MongoClient(uri);
-}
 
 export default defineTool({
   description: "Save the conversation history to MongoDB. Call this at the end of a session so the user's conversations are remembered.",
@@ -19,30 +13,26 @@ export default defineTool({
   }),
   async execute({ userId, messages }) {
     const client = getClient();
-    try {
-      await client.connect();
-      const db = client.db("build-agent");
-      const conversations = db.collection("conversations");
+    await client.connect();
+    const db = client.db("build-agent");
+    const conversations = db.collection("conversations");
 
-      await conversations.updateOne(
-        { userId },
-        {
-          $set: {
-            userId,
-            messages,
-            updatedAt: new Date(),
-          },
-          $setOnInsert: { createdAt: new Date() },
+    await conversations.updateOne(
+      { userId },
+      {
+        $set: {
+          userId,
+          messages,
+          updatedAt: new Date(),
         },
-        { upsert: true }
-      );
+        $setOnInsert: { createdAt: new Date() },
+      },
+      { upsert: true }
+    );
 
-      return {
-        success: true,
-        message: `Saved conversation history for user '${userId}' (${messages.length} messages).`,
-      };
-    } finally {
-      await client.close();
-    }
+    return {
+      success: true,
+      message: `Saved conversation history for user '${userId}' (${messages.length} messages).`,
+    };
   },
 });

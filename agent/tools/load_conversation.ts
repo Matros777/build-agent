@@ -1,12 +1,6 @@
 import { defineTool } from "eve/tools";
-import { MongoClient } from "mongodb";
+import { getClient } from "../../lib/mongodb";
 import { z } from "zod";
-
-function getClient() {
-  const uri = process.env.DATABASE_URL_MONGODB_URI;
-  if (!uri) throw new Error("DATABASE_URL_MONGODB_URI is not set");
-  return new MongoClient(uri);
-}
 
 export default defineTool({
   description: "Load the user's conversation history from MongoDB. Call this FIRST at the start of every session to remember previous discussions.",
@@ -15,29 +9,25 @@ export default defineTool({
   }),
   async execute({ userId }) {
     const client = getClient();
-    try {
-      await client.connect();
-      const db = client.db("build-agent");
-      const conversations = db.collection("conversations");
+    await client.connect();
+    const db = client.db("build-agent");
+    const conversations = db.collection("conversations");
 
-      const doc = await conversations.findOne({ userId });
+    const doc = await conversations.findOne({ userId });
 
-      if (!doc) {
-        return {
-          found: false,
-          message: `No previous conversations found for user '${userId}'. This is their first visit.`,
-          conversations: [],
-        };
-      }
-
+    if (!doc) {
       return {
-        found: true,
-        message: `Found previous conversation for user '${userId}' with ${doc.messages.length} messages.`,
-        conversations: doc.messages,
-        updatedAt: doc.updatedAt,
+        found: false,
+        message: `No previous conversations found for user '${userId}'. This is their first visit.`,
+        conversations: [],
       };
-    } finally {
-      await client.close();
     }
+
+    return {
+      found: true,
+      message: `Found previous conversation for user '${userId}' with ${doc.messages.length} messages.`,
+      conversations: doc.messages,
+      updatedAt: doc.updatedAt,
+    };
   },
 });

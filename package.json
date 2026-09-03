@@ -30,6 +30,7 @@
     "@tailwindcss/postcss": "4.3.0",
     "@vercel/blob": "^2.8.0",
     "@vercel/connect": "0.4.2",
+    "@vercel/functions": "^3.9.5",
     "ai": "7.0.85",
     "better-auth": "1.6.26",
     "class-variance-authority": "0.7.1",
