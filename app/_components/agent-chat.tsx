@@ -23,7 +23,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
 import { ModelSelector } from "./model-selector";
-import { BrowserToggle } from "./browser-toggle";
 
 const AGENT_NAME = "build";
 
@@ -250,7 +249,6 @@ function ChatHeader({ canStartNewChat }: { readonly canStartNewChat: boolean }) 
       <div className="relative mx-auto flex h-full w-full max-w-3xl items-center justify-center bg-background px-24">
         <span className="truncate text-muted-foreground text-sm">{AGENT_NAME}</span>
         <ModelSelector className="pointer-events-auto fixed top-3 left-4" />
-        <BrowserToggle className="pointer-events-auto fixed top-3 left-52" />
         {canStartNewChat ? (
           <Button
             aria-label="Start a new chat"

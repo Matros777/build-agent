@@ -31,7 +31,6 @@
     "@vercel/blob": "^2.8.0",
     "@vercel/connect": "0.4.2",
     "@vercel/functions": "^3.9.5",
-    "@vercel/sandbox": "^3.2.1",
     "ai": "7.0.85",
     "better-auth": "1.6.26",
     "class-variance-authority": "0.7.1",
@@ -54,7 +53,6 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@playwright/mcp": "^0.0.80",
     "@types/node": "24.13.2",
     "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
