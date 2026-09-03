@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  BotIcon,
-  CheckIcon,
-  ChevronDownIcon,
-  CpuIcon,
-  RefreshCwIcon,
-} from "lucide-react";
+import { CheckIcon, ChevronDownIcon, CpuIcon, RefreshCwIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,8 +18,13 @@ type AgentModel = {
   id: string;
   name: string;
   context: string;
-  emoji: string;
+  provider: "zen" | "openrouter";
   desc: string;
+};
+
+const PROVIDER_LABELS: Record<AgentModel["provider"], string> = {
+  zen: "OpenCode Zen",
+  openrouter: "OpenRouter",
 };
 
 export function ModelSelector({ className }: { className?: string }) {
@@ -79,15 +78,41 @@ export function ModelSelector({ className }: { className?: string }) {
     );
   }
 
+  const zenModels = models.filter((m) => m.provider === "zen");
+  const openrouterModels = models.filter((m) => m.provider === "openrouter");
+
+  const renderModel = (model: AgentModel) => (
+    <DropdownMenuItem
+      key={model.id}
+      disabled={saving}
+      onSelect={() => void selectModel(model.id)}
+      className={cn(
+        "flex flex-col items-start gap-0.5 py-2 pr-8",
+        model.id === currentId && "bg-accent",
+      )}
+    >
+      <span className="flex w-full items-center gap-2 text-sm">
+        <span className="flex-1 truncate font-medium">{model.name}</span>
+        {model.id === currentId && <CheckIcon className="size-3.5 text-primary" />}
+      </span>
+      <span className="flex w-full items-center gap-1.5 pl-0 text-xs text-muted-foreground">
+        <span className="truncate">{model.desc}</span>
+        {model.context !== "—" && (
+          <span className="shrink-0">· {model.context} context</span>
+        )}
+      </span>
+    </DropdownMenuItem>
+  );
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className={cn("gap-1.5", className)}>
           <CpuIcon className="size-4 text-primary" />
-          <span className="max-w-40 truncate font-medium">
+          <span className="max-w-44 truncate font-medium">
             {current ? current.name : "Выбор модели"}
           </span>
-          {current && (
+          {current && current.context !== "—" && (
             <Badge variant="secondary" className="ml-0.5 px-1.5 text-[10px]">
               {current.context}
             </Badge>
@@ -98,30 +123,27 @@ export function ModelSelector({ className }: { className?: string }) {
       <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
         <DropdownMenuLabel>
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <BotIcon className="size-3.5" /> Выбери модель ИИ
+            <CpuIcon className="size-3.5" /> Выбери модель ИИ
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {models.map((model) => (
-          <DropdownMenuItem
-            key={model.id}
-            disabled={saving}
-            onSelect={() => void selectModel(model.id)}
-            className={cn(
-              "flex flex-col items-start gap-0.5 py-2 pr-8",
-              model.id === currentId && "bg-accent",
-            )}
-          >
-            <span className="flex w-full items-center gap-2 text-sm">
-              <span>{model.emoji}</span>
-              <span className="flex-1 truncate font-medium">{model.name}</span>
-              {model.id === currentId && <CheckIcon className="size-3.5 text-primary" />}
-            </span>
-            <span className="pl-6 w-full text-xs text-muted-foreground truncate">
-              {model.desc} · {model.context} context
-            </span>
-          </DropdownMenuItem>
-        ))}
+        {zenModels.length > 0 && (
+          <>
+            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              {PROVIDER_LABELS.zen} (без ключа)
+            </DropdownMenuLabel>
+            {zenModels.map(renderModel)}
+            <DropdownMenuSeparator />
+          </>
+        )}
+        {openrouterModels.length > 0 && (
+          <>
+            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              {PROVIDER_LABELS.openrouter}
+            </DropdownMenuLabel>
+            {openrouterModels.map(renderModel)}
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

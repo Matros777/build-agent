@@ -1,12 +1,20 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { defineAgent, defineDynamic } from "eve";
 import { getClient } from "../lib/mongodb";
-import { DEFAULT_MODEL } from "../lib/models";
+import { DEFAULT_MODEL, getModelById } from "../lib/models";
 
+// Провайдер OpenRouter (нужен API ключ)
 const openrouter = createOpenAICompatible({
   name: "openrouter",
   baseURL: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
   apiKey: process.env.OPENROUTER_API_KEY,
+});
+
+// Провайдер OpenCode Zen (free-модели БЕЗ ключа)
+const zen = createOpenAICompatible({
+  name: "zen",
+  baseURL: process.env.ZEN_BASE_URL || "https://opencode.ai/zen/v1",
+  apiKey: process.env.ZEN_API_KEY || "zen-free", // free-модели не требуют ключа
 });
 
 const MODEL_CONTEXT_WINDOW = Number(process.env.CONTEXT_WINDOW) || 200000;
@@ -41,11 +49,20 @@ async function resolveModelId(): Promise<string> {
 export default defineAgent({
   model: defineDynamic({
     events: {
-      // step.started разрешает возвращать provider object (openrouter), см. доки eve
+      // step.started разрешает возвращать provider object, см. доки eve
       "step.started": async () => {
         const modelId = await resolveModelId();
+        const model = getModelById(modelId);
+
+        if (model.provider === "zen") {
+          return {
+            model: zen(model.id),
+            modelContextWindowTokens: MODEL_CONTEXT_WINDOW,
+          };
+        }
+
         return {
-          model: openrouter(modelId),
+          model: openrouter(model.id),
           modelContextWindowTokens: MODEL_CONTEXT_WINDOW,
         };
       },
