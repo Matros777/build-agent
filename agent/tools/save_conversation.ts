@@ -2,16 +2,21 @@ import { defineTool } from "eve/tools";
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 
-const sql = neon(process.env.DATABASE_URL!);
+function getSql() {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is not set");
+  return neon(url);
+}
 
 export default defineTool({
-  description: "Save conversation history to PostgreSQL database. Use this to remember what was discussed.",
+  description: "Save conversation history to PostgreSQL database.",
   inputSchema: z.object({
     userId: z.string().describe("User identifier"),
     messages: z.string().describe("JSON string of conversation messages"),
   }),
   async execute({ userId, messages }) {
-    // Create table if not exists
+    const sql = getSql();
+
     await sql`
       CREATE TABLE IF NOT EXISTS conversations (
         id SERIAL PRIMARY KEY,
@@ -21,17 +26,16 @@ export default defineTool({
       )
     `;
 
-    // Save conversation
     const result = await sql`
       INSERT INTO conversations (user_id, messages)
       VALUES (${userId}, ${messages}::jsonb)
       RETURNING id, created_at
     `;
 
-    return { 
-      success: true, 
-      id: result[0].id, 
-      createdAt: result[0].created_at 
+    return {
+      success: true,
+      id: result[0].id,
+      createdAt: result[0].created_at,
     };
   },
 });

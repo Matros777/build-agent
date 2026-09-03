@@ -2,15 +2,21 @@ import { defineTool } from "eve/tools";
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 
-const sql = neon(process.env.DATABASE_URL!);
+function getSql() {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is not set");
+  return neon(url);
+}
 
 export default defineTool({
-  description: "Load conversation history from PostgreSQL database. Use this to remember previous discussions.",
+  description: "Load conversation history from PostgreSQL database.",
   inputSchema: z.object({
     userId: z.string().describe("User identifier"),
     limit: z.number().optional().describe("Number of recent conversations to load (default: 5)"),
   }),
   async execute({ userId, limit = 5 }) {
+    const sql = getSql();
+
     const result = await sql`
       SELECT id, messages, created_at
       FROM conversations
