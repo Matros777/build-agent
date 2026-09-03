@@ -1,41 +1,48 @@
 import { defineTool } from "eve/tools";
-import { neon } from "@neondatabase/serverless";
+import { MongoClient } from "mongodb";
 import { z } from "zod";
 
-function getSql() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
-  return neon(url);
+function getClient() {
+  const uri = process.env.DATABASE_URL_MONGODB_URI;
+  if (!uri) throw new Error("DATABASE_URL_MONGODB_URI is not set");
+  return new MongoClient(uri);
 }
 
 export default defineTool({
-  description: "Save conversation history to PostgreSQL database.",
+  description: "Save the conversation history to MongoDB. Call this at the end of a session so the user's conversations are remembered.",
   inputSchema: z.object({
-    userId: z.string().describe("User identifier"),
-    messages: z.string().describe("JSON string of conversation messages"),
+    userId: z.string().describe("The user's identifier (e.g. 'boss')."),
+    messages: z.array(z.object({
+      role: z.string().describe("Role: 'user' or 'assistant'"),
+      content: z.string().describe("Message content"),
+    })).describe("Array of conversation messages"),
   }),
   async execute({ userId, messages }) {
-    const sql = getSql();
+    const client = getClient();
+    try {
+      await client.connect();
+      const db = client.db("build-agent");
+      const conversations = db.collection("conversations");
 
-    await sql`
-      CREATE TABLE IF NOT EXISTS conversations (
-        id SERIAL PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        messages JSONB NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW()
-      )
-    `;
+      await conversations.updateOne(
+        { userId },
+        {
+          $set: {
+            userId,
+            messages,
+            updatedAt: new Date(),
+          },
+          $setOnInsert: { createdAt: new Date() },
+        },
+        { upsert: true }
+      );
 
-    const result = await sql`
-      INSERT INTO conversations (user_id, messages)
-      VALUES (${userId}, ${messages}::jsonb)
-      RETURNING id, created_at
-    `;
-
-    return {
-      success: true,
-      id: result[0].id,
-      createdAt: result[0].created_at,
-    };
+      return {
+        success: true,
+        message: `Saved conversation history for user '${userId}' (${messages.length} messages).`,
+      };
+    } finally {
+      await client.close();
+    }
   },
 });

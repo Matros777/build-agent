@@ -1,55 +1,43 @@
 import { defineTool } from "eve/tools";
-import { neon } from "@neondatabase/serverless";
+import { MongoClient } from "mongodb";
 import { z } from "zod";
 
-function getSql() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
-  return neon(url);
+function getClient() {
+  const uri = process.env.DATABASE_URL_MONGODB_URI;
+  if (!uri) throw new Error("DATABASE_URL_MONGODB_URI is not set");
+  return new MongoClient(uri);
 }
 
 export default defineTool({
-  description: "Load the user's conversation history from the database. Call this FIRST at the start of every session to remember previous discussions.",
+  description: "Load the user's conversation history from MongoDB. Call this FIRST at the start of every session to remember previous discussions.",
   inputSchema: z.object({
-    userId: z.string().describe("The user's identifier (e.g. 'boss'). If the user identifies themselves as БОСС, use 'boss'."),
+    userId: z.string().describe("The user's identifier (e.g. 'boss'). If the user is the owner, use 'boss'."),
   }),
   async execute({ userId }) {
-    const sql = getSql();
+    const client = getClient();
+    try {
+      await client.connect();
+      const db = client.db("build-agent");
+      const conversations = db.collection("conversations");
 
-    // Create table if not exists so we never fail on first ever call
-    await sql`
-      CREATE TABLE IF NOT EXISTS conversations (
-        id SERIAL PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        messages JSONB NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW()
-      )
-    `;
+      const doc = await conversations.findOne({ userId });
 
-    const result = await sql`
-      SELECT id, messages, created_at
-      FROM conversations
-      WHERE user_id = ${userId}
-      ORDER BY created_at DESC
-      LIMIT 10
-    `;
+      if (!doc) {
+        return {
+          found: false,
+          message: `No previous conversations found for user '${userId}'. This is their first visit.`,
+          conversations: [],
+        };
+      }
 
-    if (result.length === 0) {
       return {
-        found: false,
-        message: `No previous conversations found for user '${userId}'. This is their first visit.`,
-        conversations: [],
+        found: true,
+        message: `Found previous conversation for user '${userId}' with ${doc.messages.length} messages.`,
+        conversations: doc.messages,
+        updatedAt: doc.updatedAt,
       };
+    } finally {
+      await client.close();
     }
-
-    return {
-      found: true,
-      message: `Found ${result.length} previous conversation(s) for user '${userId}'.`,
-      conversations: result.map(row => ({
-        id: row.id,
-        messages: row.messages,
-        createdAt: row.created_at,
-      })),
-    };
   },
 });
