@@ -2,7 +2,7 @@
 
 import type { UserContent } from "ai";
 import { useEveAgent } from "eve/react";
-import { AlertCircleIcon, BrainIcon, PlusIcon, SquareIcon } from "lucide-react";
+import { AlertCircleIcon, BrainIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import {
   Conversation,
@@ -13,7 +13,6 @@ import {
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
   PromptInput,
-  PromptInputButton,
   type PromptInputMessage,
   PromptInputSubmit,
   PromptInputTextarea,
@@ -122,6 +121,11 @@ export function AgentChat({
         hasInputText={hasInputText}
         isBusy={isBusy}
         isResuming={isResuming}
+        status={
+          agent.status === "submitted" || agent.status === "streaming"
+            ? agent.status
+            : null
+        }
         onCancel={requestCancellation}
       />
     </PromptInput>
@@ -194,29 +198,30 @@ function ComposerAction({
   hasInputText,
   isBusy,
   isResuming,
+  status,
   onCancel,
 }: {
   readonly hasInputText: boolean;
   readonly isBusy: boolean;
   readonly isResuming: boolean;
+  readonly status: "submitted" | "streaming" | null;
   readonly onCancel: () => void;
 }) {
   const attachments = usePromptInputAttachments();
   const canSubmit = hasInputText || attachments.files.length > 0;
 
-  if (!isBusy || canSubmit) {
+  if (!isBusy) {
     return <PromptInputSubmit disabled={isResuming} />;
   }
 
+  // Model is generating: the button is always Stop — never submit/steer.
   return (
-    <PromptInputButton
+    <PromptInputSubmit
       aria-label="Stop"
-      className="absolute right-2.5 bottom-2.5"
-      onClick={onCancel}
-      variant="outline"
-    >
-      <SquareIcon className="size-3 fill-current" />
-    </PromptInputButton>
+      disabled={isResuming}
+      onStop={onCancel}
+      status={status ?? undefined}
+    />
   );
 }
 
