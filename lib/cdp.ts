@@ -4,7 +4,6 @@ const SANDBOX_NAME = "browser-server";
 const SERVER_PORT = 8080;
 let cachedUrl: string | null = null;
 
-// The standalone Playwright HTTP server (kept inline; runs inside the sandbox).
 const SERVER_SCRIPT = `
 import { createServer } from "node:http";
 import { chromium } from "playwright";
@@ -77,6 +76,8 @@ SRVEOF
 (node /workspace/browser-server.mjs --port ${SERVER_PORT} > /tmp/browser-server.log 2>&1 &) || true
 `;
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export async function getBrowserServerUrl(): Promise<string> {
   if (cachedUrl) return cachedUrl;
 
@@ -101,22 +102,61 @@ export async function getBrowserServerUrl(): Promise<string> {
   return cachedUrl;
 }
 
+// Wait until the browser server answers /ping with JSON, or timeout.
+export async function waitForBrowserServer(timeoutMs = 180_000): Promise<string> {
+  const base = await getBrowserServerUrl();
+  const deadline = Date.now() + timeoutMs;
+  let lastError = "sandbox still initializing";
+
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(`${base}/ping`, { signal: AbortSignal.timeout(10000) });
+      const ct = res.headers.get("content-type") || "";
+      const body = await res.text();
+      if (res.ok && ct.includes("application/json")) {
+        const data = JSON.parse(body);
+        if (data?.ok) return base;
+      }
+      lastError = `HTTP ${res.status}: ${body.slice(0, 120)}`;
+    } catch (err: any) {
+      lastError = err?.message || String(err);
+    }
+    await sleep(5000);
+  }
+
+  throw new Error(`Browser server not ready after ${timeoutMs}ms: ${lastError}`);
+}
+
 export async function browserRequest(
   action: string,
   params: Record<string, string | undefined> = {},
 ): Promise<any> {
-  const base = await getBrowserServerUrl();
+  // First call may need to wait for provision + chromium install.
+  const base = await waitForBrowserServer();
   const query = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     if (v) query.set(k, v);
   }
   const qs = query.toString();
-  try {
-    const res = await fetch(`${base}/${action}${qs ? `?${qs}` : ""}`, {
-      signal: AbortSignal.timeout(60000),
-    });
-    return await res.json();
-  } catch (err: any) {
-    return { success: false, error: `CDP server request failed: ${err?.message || err}` };
+
+  // Retry a few times (provisioning can take a while).
+  let lastError: string | undefined;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const res = await fetch(`${base}/${action}${qs ? `?${qs}` : ""}`, {
+        signal: AbortSignal.timeout(90000),
+      });
+      const ct = res.headers.get("content-type") || "";
+      const body = await res.text();
+      if (ct.includes("application/json")) {
+        return JSON.parse(body);
+      }
+      lastError = `HTTP ${res.status}: ${body.slice(0, 160)}`;
+    } catch (err: any) {
+      lastError = err?.message || String(err);
+    }
+    await sleep(4000);
   }
+
+  return { success: false, error: `CDP server request failed: ${lastError}` };
 }
