@@ -2,6 +2,22 @@ import { defineTool } from "eve/tools";
 import { getClient } from "../../lib/mongodb";
 import { z } from "zod";
 
+// Converts BSON dates/objects to plain JSON-safe values
+function toJSONSafe(value: any): any {
+  if (value === null || value === undefined) return null;
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map(toJSONSafe);
+  if (typeof value === "object") {
+    const result: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (k === "_id" || k === "$oid" || k === "$date") continue; // drop ObjectId etc.
+      result[k] = toJSONSafe(v);
+    }
+    return result;
+  }
+  return value;
+}
+
 export default defineTool({
   description: "Load the user's conversation history from MongoDB. Call this FIRST at the start of every session to remember previous discussions.",
   inputSchema: z.object({
@@ -23,11 +39,13 @@ export default defineTool({
       };
     }
 
+    const messages = Array.isArray(doc.messages) ? doc.messages : [];
+
     return {
       found: true,
-      message: `Found previous conversation for user '${userId}' with ${doc.messages.length} messages.`,
-      conversations: doc.messages,
-      updatedAt: doc.updatedAt,
+      message: `Found previous conversation for user '${userId}' with ${messages.length} messages.`,
+      conversations: toJSONSafe(messages),
+      updatedAt: toJSONSafe(doc.updatedAt),
     };
   },
 });
