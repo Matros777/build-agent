@@ -23,6 +23,7 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
+import { ModelSelector } from "./model-selector";
 
 const AGENT_NAME = "build";
 
@@ -242,6 +243,7 @@ function ChatHeader({ canStartNewChat }: { readonly canStartNewChat: boolean }) 
     <header className="pointer-events-none fixed top-0 right-0 left-0 z-20 h-14">
       <div className="relative mx-auto flex h-full w-full max-w-3xl items-center justify-center bg-background px-24">
         <span className="truncate text-muted-foreground text-sm">{AGENT_NAME}</span>
+        <ModelSelector className="pointer-events-auto fixed top-3 left-4" />
         {canStartNewChat ? (
           <Button
             aria-label="Start a new chat"
