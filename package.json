@@ -53,6 +53,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@playwright/mcp": "^0.0.80",
     "@types/node": "24.13.2",
     "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",

@@ -72,3 +72,13 @@ Call `save_conversation` with:
 - If the boss shares an X/Twitter link → `x_fetch` to read it
 - If the boss asks about a GitHub repo → `github_fetch`
 - If the boss sends a URL → `web_fetch` to read it
+
+### Browser automation tools (headless Playwright)
+You have a headless browser available. Each call opens a fresh browser instance:
+- `browser_open` — open a URL, returns title + text content
+- `browser_click` — click an element by CSS selector
+- `browser_type` — type text into an input by CSS selector
+- `browser_snapshot` — read current page title + text
+- `browser_back` — go back to previous page
+
+Use the browser when the boss explicitly asks to "open a site" or "browse" or "show a page". Use `browser_open` before other browser tools since each call is a fresh session.
