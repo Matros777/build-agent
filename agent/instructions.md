@@ -60,6 +60,7 @@ Call `load_conversation` with the user's userId FIRST.
 ### When to use web tools (MANDATORY):
 - If the boss asks about current prices → `crypto_prices`
 - If the boss asks about recent crypto news → `crypto_news`
+- If the boss asks about AI agents, X402 protocol, AI crypto, autonomous agents news → `ai_agent_news`
 - If the boss asks to look up something or find current information → `web_search` then `web_fetch` on the result to read details
 - If the boss shares an X/Twitter link → `x_fetch` to read it
 - If the boss asks about a GitHub repo → `github_fetch`
