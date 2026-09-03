@@ -11,19 +11,18 @@ const openrouter = createOpenAICompatible({
 
 const MODEL_CONTEXT_WINDOW = Number(process.env.CONTEXT_WINDOW) || 200000;
 
-// Решаем модель один раз при старте сессии и кешируем.
-// Модуль-уровневый кеш + fallback на env/DEFAULT — БД НЕ блокирует агента.
+// Кеш: БД читается один раз, дальше модель из памяти
 let cachedModelId: string | null = null;
 let cacheLoaded = false;
 
 async function resolveModelId(): Promise<string> {
-  // 1) env override имеет высший приоритет (меняется в Vercel)
+  // 1) env override главный (меняется в Vercel)
   if (process.env.MODEL) return process.env.MODEL;
 
   // 2) кеш из памяти
   if (cacheLoaded) return cachedModelId ?? DEFAULT_MODEL.id;
 
-  // 3) лениво читаем из MongoDB один раз
+  // 3) лениво из MongoDB один раз
   try {
     const client = getClient();
     await client.connect();
@@ -42,7 +41,8 @@ async function resolveModelId(): Promise<string> {
 export default defineAgent({
   model: defineDynamic({
     events: {
-      "session.started": async () => {
+      // step.started разрешает возвращать provider object (openrouter), см. доки eve
+      "step.started": async () => {
         const modelId = await resolveModelId();
         return {
           model: openrouter(modelId),
