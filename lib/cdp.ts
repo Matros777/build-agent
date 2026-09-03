@@ -135,6 +135,18 @@ export async function getBrowserServerUrl(): Promise<string> {
 }
 
 export async function waitForBrowserServer(timeoutMs = 300_000): Promise<string> {
+  try {
+    return await pingUntilReady(timeoutMs);
+  } catch (err) {
+    // Auto-repair: the existing sandbox is broken/misconfigured.
+    // Delete it and bootstrap a fresh one.
+    await resetBrowserServer();
+    cachedUrl = null;
+    return await pingUntilReady(timeoutMs);
+  }
+}
+
+async function pingUntilReady(timeoutMs: number): Promise<string> {
   const base = await getBrowserServerUrl();
   const deadline = Date.now() + timeoutMs;
   let lastError = "sandbox still initializing";
@@ -165,6 +177,17 @@ export async function waitForBrowserServer(timeoutMs = 300_000): Promise<string>
   } catch { /* ignore */ }
 
   throw new Error(`Browser server not ready after ${timeoutMs}ms: ${lastError}${logTail}`);
+}
+
+// Delete and recreate the browser sandbox from scratch.
+export async function resetBrowserServer(): Promise<void> {
+  try {
+    const sandbox = await Sandbox.get({ name: SANDBOX_NAME, resume: false });
+    if (sandbox) {
+      await sandbox.delete();
+    }
+  } catch { /* sandbox may not exist — fine */ }
+  cachedUrl = null;
 }
 
 export async function browserRequest(
