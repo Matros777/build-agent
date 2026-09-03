@@ -9,28 +9,42 @@ function getSql() {
 }
 
 export default defineTool({
-  description: "Load conversation history from PostgreSQL database.",
+  description: "Load the user's conversation history from the database. Call this FIRST at the start of every session to remember previous discussions.",
   inputSchema: z.object({
-    userId: z.string().describe("User identifier"),
-    limit: z.number().optional().describe("Number of recent conversations to load (default: 5)"),
+    userId: z.string().describe("The user's identifier (e.g. 'boss'). If the user identifies themselves as БОСС, use 'boss'."),
   }),
-  async execute({ userId, limit = 5 }) {
+  async execute({ userId }) {
     const sql = getSql();
+
+    // Create table if not exists so we never fail on first ever call
+    await sql`
+      CREATE TABLE IF NOT EXISTS conversations (
+        id SERIAL PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        messages JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
 
     const result = await sql`
       SELECT id, messages, created_at
       FROM conversations
       WHERE user_id = ${userId}
       ORDER BY created_at DESC
-      LIMIT ${limit}
+      LIMIT 10
     `;
 
     if (result.length === 0) {
-      return { found: false, conversations: [] };
+      return {
+        found: false,
+        message: `No previous conversations found for user '${userId}'. This is their first visit.`,
+        conversations: [],
+      };
     }
 
     return {
       found: true,
+      message: `Found ${result.length} previous conversation(s) for user '${userId}'.`,
       conversations: result.map(row => ({
         id: row.id,
         messages: row.messages,
