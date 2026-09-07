@@ -14,7 +14,14 @@ const openrouter = createOpenAICompatible({
 const zen = createOpenAICompatible({
   name: "zen",
   baseURL: process.env.ZEN_BASE_URL || "https://opencode.ai/zen/v1",
-  apiKey: process.env.ZEN_API_KEY || "zen-free", // free-модели не требуют ключа
+  apiKey: process.env.ZEN_API_KEY || "zen-free",
+});
+
+// Провайдер ASI1 (облачная модель)
+const asi1 = createOpenAICompatible({
+  name: "asi1",
+  baseURL: "https://api.asi1.ai/v1",
+  apiKey: process.env.ASI1_API_KEY,
 });
 
 const MODEL_CONTEXT_WINDOW = Number(process.env.CONTEXT_WINDOW) || 200000;
@@ -53,6 +60,13 @@ export default defineAgent({
       "step.started": async () => {
         const modelId = await resolveModelId();
         const model = getModelById(modelId);
+
+        if (model.provider === "asi1") {
+          return {
+            model: asi1(model.id),
+            modelContextWindowTokens: MODEL_CONTEXT_WINDOW,
+          };
+        }
 
         if (model.provider === "zen") {
           return {

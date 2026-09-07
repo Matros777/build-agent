@@ -2,7 +2,7 @@ export type AgentModel = {
   id: string;        // model id for the provider
   name: string;      // display name
   context: string;   // context window size label
-  provider: "zen" | "openrouter";
+  provider: "zen" | "openrouter" | "asi1";
   desc: string;      // short description
 };
 
@@ -39,10 +39,15 @@ const OPENROUTER_MODELS: AgentModel[] = [
   { id: "minimax/minimax-m2.7:free", name: "MiniMax-M2.7", context: "196K", provider: "openrouter", desc: "Next-gen LLM (free)" },
 ];
 
-export const AGENT_MODELS: AgentModel[] = [...ZEN_MODELS, ...OPENROUTER_MODELS];
+// ASI1 — облачная модель
+const ASI1_MODELS: AgentModel[] = [
+  { id: "asi1", name: "ASI1", context: "550K", provider: "asi1", desc: "ASI1 cloud model (550K context)" },
+];
+
+export const AGENT_MODELS: AgentModel[] = [...ZEN_MODELS, ...OPENROUTER_MODELS, ...ASI1_MODELS];
 
 export const DEFAULT_MODEL = AGENT_MODELS.find(
-  (m) => m.id === "dots-studio/dots-3-note-preview:free",
+  (m) => m.id === "asi1",
 ) ?? AGENT_MODELS[0];
 
 export function getModelById(id: string): AgentModel {
