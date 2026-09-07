@@ -18,13 +18,11 @@ type AgentModel = {
   id: string;
   name: string;
   context: string;
-  provider: "zen" | "openrouter" | "asi1";
+  provider: "asi1";
   desc: string;
 };
 
 const PROVIDER_LABELS: Record<AgentModel["provider"], string> = {
-  zen: "OpenCode Zen",
-  openrouter: "OpenRouter",
   asi1: "ASI1",
 };
 
@@ -79,8 +77,6 @@ export function ModelSelector({ className }: { className?: string }) {
     );
   }
 
-  const zenModels = models.filter((m) => m.provider === "zen");
-  const openrouterModels = models.filter((m) => m.provider === "openrouter");
   const asi1Models = models.filter((m) => m.provider === "asi1");
 
   const renderModel = (model: AgentModel) => (
@@ -135,24 +131,6 @@ export function ModelSelector({ className }: { className?: string }) {
               {PROVIDER_LABELS.asi1}
             </DropdownMenuLabel>
             {asi1Models.map(renderModel)}
-            <DropdownMenuSeparator />
-          </>
-        )}
-        {zenModels.length > 0 && (
-          <>
-            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
-              {PROVIDER_LABELS.zen} (без ключа)
-            </DropdownMenuLabel>
-            {zenModels.map(renderModel)}
-            <DropdownMenuSeparator />
-          </>
-        )}
-        {openrouterModels.length > 0 && (
-          <>
-            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
-              {PROVIDER_LABELS.openrouter}
-            </DropdownMenuLabel>
-            {openrouterModels.map(renderModel)}
           </>
         )}
       </DropdownMenuContent>

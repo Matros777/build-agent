@@ -3,21 +3,7 @@ import { defineAgent, defineDynamic } from "eve";
 import { getClient } from "../lib/mongodb";
 import { DEFAULT_MODEL, getModelById } from "../lib/models";
 
-// Провайдер OpenRouter (нужен API ключ)
-const openrouter = createOpenAICompatible({
-  name: "openrouter",
-  baseURL: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
-
-// Провайдер OpenCode Zen (free-модели БЕЗ ключа)
-const zen = createOpenAICompatible({
-  name: "zen",
-  baseURL: process.env.ZEN_BASE_URL || "https://opencode.ai/zen/v1",
-  apiKey: process.env.ZEN_API_KEY || "zen-free",
-});
-
-// Провайдер ASI1 (облачная модель)
+// Провайдер ASI1 — единственный (облачная модель, ключ в Vercel: ASI1_API_KEY)
 const asi1 = createOpenAICompatible({
   name: "asi1",
   baseURL: "https://api.asi1.ai/v1",
@@ -61,22 +47,8 @@ export default defineAgent({
         const modelId = await resolveModelId();
         const model = getModelById(modelId);
 
-        if (model.provider === "asi1") {
-          return {
-            model: asi1(model.id),
-            modelContextWindowTokens: MODEL_CONTEXT_WINDOW,
-          };
-        }
-
-        if (model.provider === "zen") {
-          return {
-            model: zen(model.id),
-            modelContextWindowTokens: MODEL_CONTEXT_WINDOW,
-          };
-        }
-
         return {
-          model: openrouter(model.id),
+          model: asi1(model.id),
           modelContextWindowTokens: MODEL_CONTEXT_WINDOW,
         };
       },
