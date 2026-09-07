@@ -6,9 +6,10 @@ export type AgentModel = {
   desc: string;      // short description
 };
 
-// ASI1 — облачная модель (единственный провайдер, по умолчанию)
+// ASI1 — облачные модели (единственный провайдер, по умолчанию)
 const ASI1_MODELS: AgentModel[] = [
   { id: "asi1", name: "ASI1", context: "550K", provider: "asi1", desc: "ASI1 cloud model (550K context)" },
+  { id: "asi1-mini", name: "ASI1 Mini", context: "550K", provider: "asi1", desc: "ASI1 Mini — быстрее и легче (550K context)" },
 ];
 
 export const AGENT_MODELS: AgentModel[] = [...ASI1_MODELS];
